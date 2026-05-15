@@ -1,0 +1,1 @@
+# charaful-bingo
