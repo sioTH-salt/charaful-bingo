@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>人間キャラフル・ビンゴ</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section id="screen-start" class="screen active">
+        <div class="hero-badge">新入生歓迎会</div>
+        <h1>人間<br />キャラフル・ビンゴ</h1>
+        <p class="lead">自分のキャラを選んで、会場のみんなとシンクロしよう。</p>
+        <button class="primary-button" data-next="screen-analysis">はじめる</button>
+        <button id="reset-game-data" class="reset-button">データをすべて消去してリセット</button>
+      </section>
+
+      <section id="screen-analysis" class="screen">
+        <div class="screen-header">
+          <p class="step-label">STEP 1</p>
+          <h2>カード振り分け</h2>
+          <p id="analysis-progress" class="progress-text">1 / 30</p>
+        </div>
+        <article id="analysis-card" class="character-card"></article>
+        <div class="choice-actions">
+          <button class="choice yes" data-answer="yes">✅はい</button>
+          <button class="choice maybe" data-answer="maybe">?</button>
+          <button class="choice no" data-answer="no">❌いいえ</button>
+        </div>
+      </section>
+
+      <section id="screen-select" class="screen">
+        <div class="screen-header">
+          <p class="step-label">STEP 2</p>
+          <h2>自分らしい3枚を選ぶ</h2>
+          <button class="start-over-button" data-full-reset>最初から</button>
+          <p id="select-count" class="progress-text">0 / 3</p>
+        </div>
+        <div id="selected-source" class="card-grid"></div>
+        <button id="confirm-selection" class="primary-button" disabled>3枚を決定</button>
+      </section>
+
+      <section id="screen-register" class="screen">
+        <div class="screen-header">
+          <p class="step-label">STEP 3</p>
+          <h2>名札番号登録</h2>
+        </div>
+        <label class="field-label" for="badge-number">あなたの名札番号（1〜35）を入力してね</label>
+        <input id="badge-number" type="number" min="1" max="35" inputmode="numeric" placeholder="例: 12" />
+        <p id="register-error" class="error-text" aria-live="polite"></p>
+        <button id="confirm-register" class="primary-button">決定</button>
+      </section>
+
+      <section id="screen-main" class="screen">
+        <div class="screen-header">
+          <p class="step-label">MAIN</p>
+          <h2>ビンゴカード</h2>
+          <button class="start-over-button" data-full-reset>最初から</button>
+          <button id="clear-scan-history" class="debug-button">テスト: 履歴クリア</button>
+        </div>
+        <div id="my-categories" class="tag-row"></div>
+        <div id="bingo-board" class="bingo-board"></div>
+        <div id="target-panel" class="target-panel"></div>
+        <div class="main-actions">
+          <button id="show-my-qr" class="secondary-button">自分のQRを表示する</button>
+          <button id="open-scanner" class="primary-button">相手のQRをスキャンする</button>
+        </div>
+      </section>
+
+      <section id="screen-scan" class="screen">
+        <div class="screen-header">
+          <p class="step-label">SCAN</p>
+          <h2>相手のQRをスキャン</h2>
+        </div>
+        <div id="reader" class="reader-box"></div>
+        <p id="scan-status" class="progress-text" aria-live="polite"></p>
+        <button id="open-manual-entry" class="secondary-button">手動で相手のカテゴリを入力する</button>
+        <div id="manual-category-panel" class="manual-panel hidden">
+          <label class="field-label" for="manual-partner-number">相手の名札番号（1〜35）</label>
+          <input id="manual-partner-number" type="number" min="1" max="35" inputmode="numeric" placeholder="例: 8" />
+          <p class="field-label">相手の3カテゴリを選んでください</p>
+          <p id="manual-count" class="progress-text">0 / 3</p>
+          <div id="manual-category-list" class="manual-category-list"></div>
+          <button id="confirm-manual-categories" class="primary-button" disabled>このカテゴリで決定</button>
+        </div>
+        <button id="close-scanner" class="secondary-button">メインに戻る</button>
+      </section>
+
+      <section id="screen-sync" class="screen">
+        <div id="sync-result" class="sync-result">カテゴリシンクロ！</div>
+      </section>
+
+      <section id="screen-bingo-result" class="screen">
+        <div id="bingo-message" class="bingo-message">1マス開いた！</div>
+        <button class="primary-button" data-next="screen-main">ビンゴに戻る</button>
+      </section>
+    </main>
+
+    <div id="qr-modal" class="qr-modal" aria-hidden="true">
+      <div class="qr-modal-card" role="dialog" aria-modal="true" aria-labelledby="qr-modal-title">
+        <div class="screen-header">
+          <p class="step-label">MY QR</p>
+          <h2 id="qr-modal-title">このQRを見せてね</h2>
+        </div>
+        <div id="qr-container" class="qr-container"></div>
+        <p id="qr-data-text" class="pin-text"></p>
+        <button id="close-qr-modal" class="secondary-button">閉じる</button>
+      </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
