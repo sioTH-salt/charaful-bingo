@@ -46,8 +46,8 @@
           <p class="step-label">STEP 3</p>
           <h2>名札番号登録</h2>
         </div>
-        <label class="field-label" for="badge-number">あなたの名札番号（1〜35）を入力してね</label>
-        <input id="badge-number" type="number" min="1" max="35" inputmode="numeric" placeholder="例: 12" />
+        <label class="field-label" for="badge-number">あなたの名札の番号を入力してね</label>
+        <input id="badge-number" type="number" min="1" inputmode="numeric" />
         <p id="register-error" class="error-text" aria-live="polite"></p>
         <button id="confirm-register" class="primary-button">決定</button>
       </section>
@@ -77,8 +77,8 @@
         <p id="scan-status" class="progress-text" aria-live="polite"></p>
         <button id="open-manual-entry" class="secondary-button">手動で相手のカテゴリを入力する</button>
         <div id="manual-category-panel" class="manual-panel hidden">
-          <label class="field-label" for="manual-partner-number">相手の名札番号（1〜35）</label>
-          <input id="manual-partner-number" type="number" min="1" max="35" inputmode="numeric" placeholder="例: 8" />
+          <label class="field-label" for="manual-partner-number">相手の名札番号</label>
+          <input id="manual-partner-number" type="number" min="1" inputmode="numeric" />
           <p class="field-label">相手の3カテゴリを選んでください</p>
           <p id="manual-count" class="progress-text">0 / 3</p>
           <div id="manual-category-list" class="manual-category-list"></div>

@@ -1,3 +1,5 @@
+const MAX_PARTICIPANTS = 35;
+
 const cards = [
   { id: 1, category: "リーダー", text: "初対面でも場をまとめるのが得意", color: "#ff3d8b" },
   { id: 2, category: "リーダー", text: "班決めや役割決めで自然と動き出す", color: "#ff3d8b" },
@@ -89,6 +91,13 @@ const dom = {
   bingoMessage: getElement("#bingo-message"),
 };
 
+function applyParticipantLimitText() {
+  dom.badgeInput.max = String(MAX_PARTICIPANTS);
+  dom.badgeInput.placeholder = "例: 12";
+  dom.manualPartnerNumber.max = String(MAX_PARTICIPANTS);
+  dom.manualPartnerNumber.placeholder = "例: 8";
+}
+
 function showScreen(screenId) {
   dom.screens.forEach((screen) => {
     screen.classList.toggle("active", screen.id === screenId);
@@ -176,7 +185,7 @@ function normalizeSelectedCards(savedCards) {
 
 function normalizeBadgeNumber(value) {
   const number = Number(value);
-  return Number.isInteger(number) && number >= 1 && number <= 35 ? number : null;
+  return Number.isInteger(number) && number >= 1 && number <= MAX_PARTICIPANTS ? number : null;
 }
 
 function normalizeNumberList(values) {
@@ -186,7 +195,7 @@ function normalizeNumberList(values) {
 
   return values
     .map((value) => Number(value))
-    .filter((value, index, array) => Number.isInteger(value) && value >= 1 && value <= 35 && array.indexOf(value) === index);
+    .filter((value, index, array) => Number.isInteger(value) && value >= 1 && value <= MAX_PARTICIPANTS && array.indexOf(value) === index);
 }
 
 function normalizeBingoBoardState(savedCells) {
@@ -445,8 +454,8 @@ function confirmSelectedCards() {
 
 function registerBadgeNumber() {
   const value = Number(dom.badgeInput.value);
-  if (!Number.isInteger(value) || value < 1 || value > 35) {
-    dom.registerError.textContent = "1〜35の番号を入力してください。";
+  if (!Number.isInteger(value) || value < 1 || value > MAX_PARTICIPANTS) {
+    dom.registerError.textContent = `1〜${MAX_PARTICIPANTS}の番号を入力してください。`;
     return;
   }
 
@@ -505,7 +514,7 @@ function renderBingoBoard() {
 
 function renderTargets() {
   state.targetNumbers = shuffle(
-    Array.from({ length: 35 }, (_, index) => index + 1).filter((number) => number !== state.badgeNumber),
+    Array.from({ length: MAX_PARTICIPANTS }, (_, index) => index + 1).filter((number) => number !== state.badgeNumber),
   ).slice(0, 3);
   renderTargetsFromState();
   saveGameState();
@@ -707,7 +716,7 @@ async function confirmManualCategories() {
 
   const partnerNumber = normalizeBadgeNumber(dom.manualPartnerNumber.value);
   if (!partnerNumber) {
-    alert("相手の名札番号を1〜35で入力してください。");
+    alert(`相手の名札番号を1〜${MAX_PARTICIPANTS}で入力してください。`);
     return;
   }
 
@@ -1015,6 +1024,7 @@ getElement("#clear-scan-history").addEventListener("click", () => {
   clearScanHistoryForTest();
 });
 
+applyParticipantLimitText();
 renderManualCategoryOptions();
 if (loadGameState()) {
   restoreSavedView();
