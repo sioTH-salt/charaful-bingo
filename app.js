@@ -1,4 +1,4 @@
-const MAX_PARTICIPANTS = 39;
+const MAX_PARTICIPANTS = 35;
 
 const cards = [
   { id: 1, category: "リーダー", text: "初対面でも場をまとめるのが得意", color: "#ff3d8b" },
@@ -863,16 +863,32 @@ async function handlePartnerData(partnerData) {
   await stopQrScanner();
 
   const matchedCategories = getMatchedCategories(partnerData.categories);
-  dom.syncResult.textContent = createSyncMessage(matchedCategories, partnerData.categories);
-  playSyncSound();
-  vibrate([100, 50, 100]);
+  const syncMessage = createSyncMessage(matchedCategories, partnerData.categories);
+  const isTargetHit = state.targetNumbers.includes(partnerData.badgeNumber);
+  const syncDelay = isTargetHit ? 4800 : 3400;
+
+  dom.syncResult.classList.toggle("target-bonus", isTargetHit);
+  dom.syncResult.textContent = isTargetHit ? "ターゲット発見ボーナス！！" : syncMessage;
+  if (isTargetHit) {
+    playBingoSound();
+    vibrate([180, 60, 180]);
+    window.setTimeout(() => {
+      dom.syncResult.classList.remove("target-bonus");
+      dom.syncResult.textContent = syncMessage;
+      playSyncSound();
+      vibrate([100, 50, 100]);
+    }, 1400);
+  } else {
+    playSyncSound();
+    vibrate([100, 50, 100]);
+  }
   showScreen("screen-sync");
 
   window.setTimeout(() => {
-    resolveBingoWithPartnerCategories(partnerData.categories);
+    resolveBingoWithPartnerCategories(partnerData.categories, isTargetHit ? partnerData.badgeNumber : null);
     state.isHandlingScan = false;
     saveGameState();
-  }, 3400);
+  }, syncDelay);
 }
 
 function getMatchedCategories(partnerCategories) {
@@ -903,7 +919,7 @@ function createSyncMessage(matchedCategories, partnerCategories) {
   return pickRandom(mismatchTemplates);
 }
 
-function resolveBingoWithPartnerCategories(partnerCategories) {
+function resolveBingoWithPartnerCategories(partnerCategories, targetHitNumber = null) {
   const openedCategories = openMatchingBingoCells(partnerCategories);
   renderBingoBoardFromState();
   saveGameState();
@@ -923,9 +939,28 @@ function resolveBingoWithPartnerCategories(partnerCategories) {
     openedCategories.length > 0
       ? `${openedCategories.join("・")} が開いた！ 次のターゲットを探そう！`
       : "今回は開くマスなし！ 次のターゲットを探そう！";
-  renderTargets();
+  if (targetHitNumber) {
+    replaceHitTargetNumber(targetHitNumber);
+  } else if (state.targetNumbers.length !== 3) {
+    renderTargets();
+  }
   showScreen("screen-bingo-result");
   window.setTimeout(() => showScreen("screen-main"), 2400);
+}
+
+function replaceHitTargetNumber(hitNumber) {
+  const candidates = Array.from({ length: MAX_PARTICIPANTS }, (_, index) => index + 1).filter(
+    (number) => number !== state.badgeNumber && number !== hitNumber && !state.targetNumbers.includes(number),
+  );
+  const replacement = pickRandom(candidates);
+  if (!replacement) {
+    renderTargets();
+    return;
+  }
+
+  state.targetNumbers = state.targetNumbers.map((number) => (number === hitNumber ? replacement : number));
+  renderTargetsFromState();
+  saveGameState();
 }
 
 function openMatchingBingoCells(partnerCategories) {

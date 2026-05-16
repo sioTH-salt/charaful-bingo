@@ -382,6 +382,16 @@ input {
   line-height: 1.5;
 }
 
+.target-help {
+  border: 3px solid rgba(35, 25, 66, 0.35);
+  border-radius: 12px;
+  padding: 9px 10px;
+  background: rgba(255, 255, 255, 0.72);
+  font-size: 12px;
+  font-weight: 850;
+  line-height: 1.45;
+}
+
 .target-panel,
 .qr-container,
 .reader-box {
@@ -506,6 +516,13 @@ input {
   font-size: 30px;
 }
 
+.sync-result.target-bonus {
+  background: var(--pink);
+  color: #fff;
+  text-shadow: 3px 3px 0 var(--ink);
+  animation: target-bonus-pop 520ms linear infinite alternate;
+}
+
 @keyframes pop-in {
   from {
     opacity: 0;
@@ -609,5 +626,16 @@ input {
   }
   to {
     box-shadow: 0 10px 0 rgba(35, 25, 66, 0.18), 0 0 42px rgba(255, 255, 255, 0.95);
+  }
+}
+
+@keyframes target-bonus-pop {
+  from {
+    transform: scale(0.96) rotate(-4deg);
+    filter: saturate(1.2);
+  }
+  to {
+    transform: scale(1.08) rotate(4deg);
+    filter: saturate(2);
   }
 }
