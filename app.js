@@ -614,10 +614,11 @@ function showMyQr() {
     return;
   }
 
-  const categoryPayload = qrSource.categories.map((category) => String(category).trim()).join(",");
-  const qrData = `${qrSource.badgeNumber}|${categoryPayload}`;
+  const categoryString = qrSource.categories.map((category) => String(category).trim()).join(",");
+  const safeData = encodeURIComponent(categoryString);
+  const qrData = `${qrSource.badgeNumber}|${safeData}`;
   dom.qrContainer.innerHTML = "";
-  dom.qrDataText.textContent = `QRデータ: ${qrData}`;
+  dom.qrDataText.textContent = `QRデータ: ${qrSource.badgeNumber}|${categoryString}`;
 
   if (!window.QRCode) {
     dom.qrContainer.textContent = qrData;
@@ -734,7 +735,6 @@ async function onQrScanSuccess(decodedText) {
     return;
   }
 
-  alert("【デバッグ】読み取った生データ:\n" + decodedText);
   const trimmedText = String(decodedText || "").trim();
   let partnerData;
   try {
@@ -742,8 +742,6 @@ async function onQrScanSuccess(decodedText) {
   } catch (e) {
     console.warn("Invalid QR payload:", trimmedText, e);
     await stopQrScanner();
-    alert("【エラー詳細】\n" + (e?.message || e));
-    alert("無効なQRコードです");
     dom.scanStatus.textContent = "無効なQRコードです。もう一度スキャンする場合はメインに戻って再開するか、手動入力を使ってください。";
     return;
   }
@@ -753,8 +751,6 @@ async function onQrScanSuccess(decodedText) {
   } catch (e) {
     console.error("QR handling failed:", e);
     await stopQrScanner();
-    alert("【エラー詳細】\n" + (e?.message || e));
-    alert("無効なQRコードです");
     dom.scanStatus.textContent = "QR処理中にエラーが発生しました。手動入力を使ってください。";
   }
 }
@@ -779,7 +775,8 @@ function parsePartnerPayload(payload) {
 }
 
 function parseCategoryPayload(payload) {
-  return String(payload || "")
+  const decodedPayload = decodeURIComponent(String(payload || ""));
+  return decodedPayload
     .replace(/\s+/g, "")
     .split(",")
     .filter((category) => category.length > 0);
