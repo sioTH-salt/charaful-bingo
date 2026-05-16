@@ -863,7 +863,7 @@ async function handlePartnerData(partnerData) {
   await stopQrScanner();
 
   const matchedCategories = getMatchedCategories(partnerData.categories);
-  dom.syncResult.textContent = createSyncMessage(matchedCategories);
+  dom.syncResult.textContent = createSyncMessage(matchedCategories, partnerData.categories);
   playSyncSound();
   vibrate([100, 50, 100]);
   showScreen("screen-sync");
@@ -880,16 +880,27 @@ function getMatchedCategories(partnerCategories) {
   return partnerCategories.filter((category) => myCategories.includes(category));
 }
 
-function createSyncMessage(matchedCategories) {
+function createSyncMessage(matchedCategories, partnerCategories) {
   if (matchedCategories.length === 3) {
     return "✨奇跡の完全一致！ 運命のバディ発見！";
   }
 
   if (matchedCategories.length >= 1) {
-    return `気配りコンビ！ お互い「${matchedCategories.join("・")}」を持っています！`;
+    const leadMessages = ["似た者同士！", "✨意気投合間違いなし！", "奇跡の共通点！", "シンクロ発見！", "会話が弾む予感！"];
+    return `${pickRandom(leadMessages)} お互い「${matchedCategories.join("・")}」を持っています！`;
   }
 
-  return "最高のデコボココンビ！ お互いの視点を補い合えます！";
+  const myCat = pickRandom(getMyCategoryNames()) || "自分らしさ";
+  const targetCat = pickRandom(partnerCategories) || "相手らしさ";
+  const mismatchTemplates = [
+    `あなたの【${myCat}】と相手の【${targetCat}】が交わる時、未知の化学反応が起きる！`,
+    `【${targetCat}】を持つ相手がいれば、あなたの【${myCat}】がさらに輝く最高の補完コンビ！`,
+    `正反対の魅力！【${myCat}】×【${targetCat}】で弱点なしの無敵チーム結成！`,
+    `あなたの【${myCat}】に相手の【${targetCat}】が加われば、新しい景色が見えてくる！`,
+    `共通点ゼロでも相性抜群！【${myCat}】と【${targetCat}】で会場をかき回そう！`,
+    `違うからこそ面白い！【${myCat}】×【${targetCat}】のミラクルペア誕生！`,
+  ];
+  return pickRandom(mismatchTemplates);
 }
 
 function resolveBingoWithPartnerCategories(partnerCategories) {
@@ -918,14 +929,14 @@ function resolveBingoWithPartnerCategories(partnerCategories) {
 }
 
 function openMatchingBingoCells(partnerCategories) {
-  const openedCategories = [];
-  state.bingoBoardState.forEach((cell) => {
-    if (!cell.isOpen && partnerCategories.includes(cell.category)) {
-      cell.isOpen = true;
-      openedCategories.push(cell.category);
-    }
-  });
-  return openedCategories;
+  const candidates = state.bingoBoardState.filter((cell) => !cell.isOpen && partnerCategories.includes(cell.category));
+  const selectedCell = pickRandom(candidates);
+  if (!selectedCell) {
+    return [];
+  }
+
+  selectedCell.isOpen = true;
+  return [selectedCell.category];
 }
 
 function renderBingoBoardFromState() {
@@ -1077,6 +1088,14 @@ function clearScanHistoryForTest() {
 
 function shuffle(items) {
   return [...items].sort(() => Math.random() - 0.5);
+}
+
+function pickRandom(items) {
+  if (!Array.isArray(items) || items.length === 0) {
+    return null;
+  }
+
+  return items[Math.floor(Math.random() * items.length)];
 }
 
 document.querySelectorAll("[data-next]").forEach((button) => {
