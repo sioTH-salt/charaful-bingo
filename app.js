@@ -179,7 +179,7 @@ function normalizeSelectedCards(savedCards, fallbackCards = []) {
   const normalized = sourceCards
     .map((savedCard) => {
       const source = findCardFromSavedValue(savedCard);
-      return source ? { id: source.id, category: source.category } : null;
+      return source ? { ...source } : null;
     })
     .filter(Boolean)
     .slice(0, 3);
@@ -480,10 +480,7 @@ function confirmSelectedCards() {
 
   state.mySelectedCards = state.selectedCardIdsForChoice.map((id) => {
     const card = cards.find((candidate) => candidate.id === id);
-    return {
-      id: card.id,
-      category: card.category,
-    };
+    return { ...card };
   });
 
   saveGameState();
@@ -536,12 +533,16 @@ function setupMainScreen() {
 
 function renderIntroScreen() {
   dom.introCategoryCards.innerHTML = "";
+  state.mySelectedCards = normalizeSelectedCards(state.mySelectedCards);
   state.mySelectedCards.forEach((card) => {
     const source = cards.find((candidate) => candidate.id === card.id || candidate.category === card.category);
     const categoryCard = document.createElement("div");
     categoryCard.className = "intro-category-card";
     categoryCard.style.background = source?.color || "#00a8ff";
-    categoryCard.textContent = card.category;
+    categoryCard.innerHTML = `
+      <span class="intro-card-category">${card.category}</span>
+      <span class="intro-card-text">${card.text}</span>
+    `;
     dom.introCategoryCards.appendChild(categoryCard);
   });
 }
@@ -554,10 +555,16 @@ function startBingoFromIntro() {
 
 function renderMyCategories() {
   dom.myCategories.innerHTML = "";
+  state.mySelectedCards = normalizeSelectedCards(state.mySelectedCards);
   state.mySelectedCards.forEach((card) => {
-    const tag = document.createElement("span");
-    tag.className = "tag";
-    tag.textContent = card.category;
+    const source = cards.find((candidate) => candidate.id === card.id || candidate.category === card.category);
+    const tag = document.createElement("article");
+    tag.className = "my-card-summary";
+    tag.style.borderColor = source?.color || "#231942";
+    tag.innerHTML = `
+      <span class="my-card-category" style="background:${source?.color || "#00a8ff"}">${card.category}</span>
+      <p class="my-card-text">${card.text}</p>
+    `;
     dom.myCategories.appendChild(tag);
   });
 }
