@@ -200,15 +200,21 @@ function findCardFromSavedValue(savedCard) {
     return cards.find((card) => card.id === savedCard) || null;
   }
 
-  return (
-    cards.find(
-      (card) =>
-        card.id === savedCard.id ||
-        card.id === savedCard.cardId ||
-        card.category === savedCard.category ||
-        card.category === savedCard.name,
-    ) || null
-  );
+  const exactById = cards.find((card) => card.id === savedCard.id || card.id === savedCard.cardId);
+  if (exactById) {
+    return { ...exactById };
+  }
+
+  if (savedCard.category && savedCard.text) {
+    return {
+      id: savedCard.id,
+      category: savedCard.category,
+      text: savedCard.text,
+      color: savedCard.color || cards.find((card) => card.category === savedCard.category)?.color || "#00a8ff",
+    };
+  }
+
+  return cards.find((card) => card.category === savedCard.category || card.category === savedCard.name) || null;
 }
 
 function normalizeBadgeNumber(value) {
@@ -359,8 +365,8 @@ function launchBingoConfetti() {
 function getMyCategoryNames() {
   state.mySelectedCards = normalizeSelectedCards(state.mySelectedCards);
   return state.mySelectedCards
-    .map((card) => card.category)
-    .filter((category) => allCategories.includes(category))
+    .map((card) => String(card.category || "").trim())
+    .filter((category) => category && allCategories.includes(category))
     .slice(0, 3);
 }
 
@@ -608,7 +614,8 @@ function showMyQr() {
     return;
   }
 
-  const qrData = `${qrSource.badgeNumber}|${qrSource.categories.join(",")}`;
+  const categoryPayload = qrSource.categories.map((category) => String(category).trim()).join(",");
+  const qrData = `${qrSource.badgeNumber}|${categoryPayload}`;
   dom.qrContainer.innerHTML = "";
   dom.qrDataText.textContent = `QRデータ: ${qrData}`;
 
@@ -762,11 +769,16 @@ function parsePartnerPayload(payload) {
 }
 
 function parseCategoryPayload(payload) {
-  return String(payload)
+  const categories = String(payload)
     .split(",")
     .map((category) => category.trim())
-    .filter((category) => allCategories.includes(category))
-    .slice(0, 3);
+    .filter((category) => category && allCategories.includes(category));
+
+  if (categories.length !== 3) {
+    throw new Error("QR payload must contain exactly 3 valid categories");
+  }
+
+  return categories;
 }
 
 function renderManualCategoryOptions() {
@@ -1093,10 +1105,6 @@ getElement("#start-bingo").addEventListener("click", () => {
   startBingoFromIntro();
 });
 getElement("#show-my-qr").addEventListener("click", () => {
-  handleUserGestureFeedback();
-  showMyQr();
-});
-getElement("#show-my-qr-intro").addEventListener("click", () => {
   handleUserGestureFeedback();
   showMyQr();
 });
