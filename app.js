@@ -1,4 +1,4 @@
-const MAX_PARTICIPANTS = 39;
+const MAX_PARTICIPANTS = 35;
 
 const cards = [
   { id: 1, category: "リーダー", text: "初対面でも場をまとめるのが得意", color: "#ff3d8b" },
@@ -75,6 +75,7 @@ const dom = {
   confirmSelection: getElement("#confirm-selection"),
   badgeInput: getElement("#badge-number"),
   registerError: getElement("#register-error"),
+  introCategoryCards: getElement("#intro-category-cards"),
   myCategories: getElement("#my-categories"),
   bingoBoard: getElement("#bingo-board"),
   targetPanel: getElement("#target-panel"),
@@ -461,9 +462,9 @@ function registerBadgeNumber() {
 
   dom.registerError.textContent = "";
   state.badgeNumber = value;
-  setupMainScreen();
+  renderIntroScreen();
   saveGameState();
-  showScreen("screen-main");
+  showScreen("intro-screen");
 }
 
 function restartAnalysis() {
@@ -483,8 +484,35 @@ function restartAnalysis() {
 
 function setupMainScreen() {
   renderMyCategories();
-  renderBingoBoard();
-  renderTargets();
+  if (state.bingoBoardState.length !== 9) {
+    renderBingoBoard();
+  } else {
+    renderBingoBoardFromState();
+  }
+
+  if (state.targetNumbers.length !== 3) {
+    renderTargets();
+  } else {
+    renderTargetsFromState();
+  }
+}
+
+function renderIntroScreen() {
+  dom.introCategoryCards.innerHTML = "";
+  state.mySelectedCards.forEach((card) => {
+    const source = cards.find((candidate) => candidate.id === card.id || candidate.category === card.category);
+    const categoryCard = document.createElement("div");
+    categoryCard.className = "intro-category-card";
+    categoryCard.style.background = source?.color || "#00a8ff";
+    categoryCard.textContent = card.category;
+    dom.introCategoryCards.appendChild(categoryCard);
+  });
+}
+
+function startBingoFromIntro() {
+  setupMainScreen();
+  saveGameState();
+  showScreen("screen-main");
 }
 
 function renderMyCategories() {
@@ -525,7 +553,13 @@ function renderTargetsFromState() {
 }
 
 function showMyQr() {
-  const qrData = `${state.badgeNumber || ""}|${getMyCategoryNames().join(",")}`;
+  const myCategories = getMyCategoryNames();
+  if (!state.badgeNumber || myCategories.length !== 3) {
+    alert("名札番号と3つのカテゴリが揃ってからQRを表示してください。");
+    return;
+  }
+
+  const qrData = `${state.badgeNumber}|${myCategories.join(",")}`;
   dom.qrContainer.innerHTML = "";
   dom.qrDataText.textContent = `QRデータ: ${qrData}`;
 
@@ -644,9 +678,14 @@ async function onQrScanSuccess(decodedText) {
     return;
   }
 
-  const partnerData = parsePartnerPayload(decodedText);
-  if (partnerData.categories.length !== 3 || !partnerData.badgeNumber) {
-    dom.scanStatus.textContent = "QRの内容を読み取れませんでした。別のQRか手動入力を使ってください。";
+  let partnerData;
+  try {
+    partnerData = parsePartnerPayload(decodedText);
+  } catch (error) {
+    console.warn("Invalid QR payload:", decodedText, error);
+    await stopQrScanner();
+    alert("無効なQRコードです");
+    dom.scanStatus.textContent = "無効なQRコードです。もう一度スキャンする場合はメインに戻って再開するか、手動入力を使ってください。";
     return;
   }
 
@@ -654,10 +693,22 @@ async function onQrScanSuccess(decodedText) {
 }
 
 function parsePartnerPayload(payload) {
-  const [numberPart, categoriesPart] = payload.includes("|") ? payload.split("|") : ["", payload];
+  const text = String(payload || "").trim();
+  const parts = text.split("|");
+  if (parts.length !== 2) {
+    throw new Error("QR payload must be badgeNumber|category1,category2,category3");
+  }
+
+  const [numberPart, categoriesPart] = parts;
+  const badgeNumber = normalizeBadgeNumber(numberPart);
+  const categories = parseCategoryPayload(categoriesPart);
+  if (!badgeNumber || categories.length !== 3) {
+    throw new Error("QR payload contains invalid badge number or categories");
+  }
+
   return {
-    badgeNumber: normalizeBadgeNumber(numberPart),
-    categories: parseCategoryPayload(categoriesPart),
+    badgeNumber,
+    categories,
   };
 }
 
@@ -892,6 +943,7 @@ function restoreSavedView() {
   dom.badgeInput.value = state.badgeNumber ?? "";
 
   if (state.mySelectedCards.length > 0) {
+    renderIntroScreen();
     renderMyCategories();
   }
 
@@ -908,6 +960,8 @@ function restoreSavedView() {
     renderAnalysisCard();
   } else if (resumableScreenId === "screen-select") {
     renderSelectionScreen();
+  } else if (resumableScreenId === "intro-screen") {
+    renderIntroScreen();
   } else if (resumableScreenId === "screen-main" && state.bingoBoardState.length !== 9 && state.mySelectedCards.length === 3) {
     setupMainScreen();
   }
@@ -922,10 +976,17 @@ function getResumableScreenId(screenId) {
   }
 
   if (screenId === "screen-scan" || screenId === "screen-sync" || screenId === "screen-bingo-result") {
-    return state.mySelectedCards.length === 3 && state.badgeNumber ? "screen-main" : "screen-start";
+    if (state.bingoBoardState.length === 9 && state.badgeNumber) {
+      return "screen-main";
+    }
+    return state.mySelectedCards.length === 3 && state.badgeNumber ? "intro-screen" : "screen-start";
   }
 
   if (screenId === "screen-main" && (!state.badgeNumber || state.mySelectedCards.length !== 3)) {
+    return "screen-start";
+  }
+
+  if (screenId === "intro-screen" && (!state.badgeNumber || state.mySelectedCards.length !== 3)) {
     return "screen-start";
   }
 
@@ -977,6 +1038,10 @@ dom.confirmSelection.addEventListener("click", () => {
 getElement("#confirm-register").addEventListener("click", () => {
   handleUserGestureFeedback();
   registerBadgeNumber();
+});
+getElement("#start-bingo").addEventListener("click", () => {
+  handleUserGestureFeedback();
+  startBingoFromIntro();
 });
 getElement("#show-my-qr").addEventListener("click", () => {
   handleUserGestureFeedback();
