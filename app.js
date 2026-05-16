@@ -1,4 +1,4 @@
-const MAX_PARTICIPANTS = 35;
+const MAX_PARTICIPANTS = 39;
 
 const cards = [
   { id: 1, category: "リーダー", text: "初対面でも場をまとめるのが得意", color: "#ff3d8b" },
