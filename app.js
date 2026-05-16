@@ -768,28 +768,21 @@ function parsePartnerPayload(payload) {
 
   const [numberPart, categoriesPart] = parts;
   const badgeNumber = normalizeBadgeNumber(numberPart);
-  const categories = parseCategoryPayload(categoriesPart);
-  if (!badgeNumber || categories.length !== 3) {
-    throw new Error("QR payload contains invalid badge number or categories");
+  if (!badgeNumber) {
+    throw new Error("QR payload contains invalid badge number");
   }
 
   return {
     badgeNumber,
-    categories,
+    categories: parseCategoryPayload(categoriesPart),
   };
 }
 
 function parseCategoryPayload(payload) {
-  const categories = String(payload)
+  return String(payload || "")
+    .replace(/\s+/g, "")
     .split(",")
-    .map((category) => category.trim())
-    .filter((category) => category && allCategories.includes(category));
-
-  if (categories.length !== 3) {
-    throw new Error("QR payload must contain exactly 3 valid categories");
-  }
-
-  return categories;
+    .filter((category) => category.length > 0);
 }
 
 function renderManualCategoryOptions() {
