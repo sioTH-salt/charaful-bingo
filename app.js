@@ -138,8 +138,8 @@ function loadGameState() {
     state.currentCardIndex = Number.isInteger(saved.currentCardIndex) ? saved.currentCardIndex : 0;
     state.answers = saved.answers && typeof saved.answers === "object" ? saved.answers : {};
     state.yesCards = normalizeSavedCards(saved.yesCards);
-    state.mySelectedCards = normalizeSelectedCards(saved.mySelectedCards);
-    state.badgeNumber = normalizeBadgeNumber(saved.userNumber);
+    state.mySelectedCards = normalizeSelectedCards(saved.mySelectedCards, saved.yesCards);
+    state.badgeNumber = normalizeBadgeNumber(saved.userNumber ?? saved.badgeNumber ?? saved.userBadgeNumber);
     state.bingoBoard = Array.isArray(saved.bingoBoard) ? saved.bingoBoard.filter((category) => category === "FREE" || allCategories.includes(category)) : [];
     state.bingoBoardState = normalizeBingoBoardState(saved.bingoBoardState);
     if (state.bingoBoardState.length !== 9 && state.bingoBoard.length === 9) {
@@ -170,18 +170,45 @@ function normalizeSavedCards(savedCards) {
     .filter(Boolean);
 }
 
-function normalizeSelectedCards(savedCards) {
-  if (!Array.isArray(savedCards)) {
+function normalizeSelectedCards(savedCards, fallbackCards = []) {
+  const sourceCards = Array.isArray(savedCards) && savedCards.length > 0 ? savedCards : fallbackCards;
+  if (!Array.isArray(sourceCards)) {
     return [];
   }
 
-  return savedCards
+  const normalized = sourceCards
     .map((savedCard) => {
-      const source = cards.find((card) => card.id === savedCard.id || card.id === savedCard || card.category === savedCard.category);
+      const source = findCardFromSavedValue(savedCard);
       return source ? { id: source.id, category: source.category } : null;
     })
     .filter(Boolean)
     .slice(0, 3);
+
+  return normalized;
+}
+
+function findCardFromSavedValue(savedCard) {
+  if (!savedCard) {
+    return null;
+  }
+
+  if (typeof savedCard === "string") {
+    return cards.find((card) => card.category === savedCard || String(card.id) === savedCard) || null;
+  }
+
+  if (typeof savedCard === "number") {
+    return cards.find((card) => card.id === savedCard) || null;
+  }
+
+  return (
+    cards.find(
+      (card) =>
+        card.id === savedCard.id ||
+        card.id === savedCard.cardId ||
+        card.category === savedCard.category ||
+        card.category === savedCard.name,
+    ) || null
+  );
 }
 
 function normalizeBadgeNumber(value) {
@@ -330,10 +357,20 @@ function launchBingoConfetti() {
 }
 
 function getMyCategoryNames() {
+  state.mySelectedCards = normalizeSelectedCards(state.mySelectedCards);
   return state.mySelectedCards
     .map((card) => card.category)
-    .filter((category, index, categories) => allCategories.includes(category) && categories.indexOf(category) === index)
+    .filter((category) => allCategories.includes(category))
     .slice(0, 3);
+}
+
+function syncQrSourceState() {
+  state.badgeNumber = normalizeBadgeNumber(state.badgeNumber ?? dom.badgeInput.value);
+  state.mySelectedCards = normalizeSelectedCards(state.mySelectedCards);
+  return {
+    badgeNumber: state.badgeNumber,
+    categories: getMyCategoryNames(),
+  };
 }
 
 function renderAnalysisCard() {
@@ -553,13 +590,18 @@ function renderTargetsFromState() {
 }
 
 function showMyQr() {
-  const myCategories = getMyCategoryNames();
-  if (!state.badgeNumber || myCategories.length !== 3) {
+  const qrSource = syncQrSourceState();
+  if (!qrSource.badgeNumber || qrSource.categories.length !== 3) {
+    console.warn("QR source data is incomplete:", {
+      badgeNumber: qrSource.badgeNumber,
+      mySelectedCards: state.mySelectedCards,
+      categories: qrSource.categories,
+    });
     alert("名札番号と3つのカテゴリが揃ってからQRを表示してください。");
     return;
   }
 
-  const qrData = `${state.badgeNumber}|${myCategories.join(",")}`;
+  const qrData = `${qrSource.badgeNumber}|${qrSource.categories.join(",")}`;
   dom.qrContainer.innerHTML = "";
   dom.qrDataText.textContent = `QRデータ: ${qrData}`;
 
@@ -1044,6 +1086,10 @@ getElement("#start-bingo").addEventListener("click", () => {
   startBingoFromIntro();
 });
 getElement("#show-my-qr").addEventListener("click", () => {
+  handleUserGestureFeedback();
+  showMyQr();
+});
+getElement("#show-my-qr-intro").addEventListener("click", () => {
   handleUserGestureFeedback();
   showMyQr();
 });
